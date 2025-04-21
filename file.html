@@ -1,0 +1,1643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Network File Sharing</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #3498db;
+            --success-color: #2ecc71;
+            --danger-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: var(--dark-color);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            border-radius: 5px 5px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-title {
+            display: flex;
+            align-items: center;
+        }
+        
+        .header-title h1 {
+            font-size: 1.5rem;
+            margin-left: 10px;
+        }
+        
+        .connection-info {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .connection-status {
+            display: flex;
+            align-items: center;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--success-color);
+            margin-right: 8px;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 20px;
+            background-color: white;
+            border-radius: 0 0 5px 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        .sidebar {
+            border-right: 1px solid #ddd;
+            padding-right: 20px;
+        }
+        
+        .sidebar h3 {
+            margin-bottom: 15px;
+            color: var(--secondary-color);
+        }
+        
+        .folder-tree {
+            list-style-type: none;
+        }
+        
+        .folder-tree li {
+            margin-bottom: 8px;
+        }
+        
+        .folder, .file {
+            display: flex;
+            align-items: center;
+            padding: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        
+        .folder:hover, .file:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .folder i, .file i {
+            margin-right: 8px;
+        }
+        
+        .content {
+            padding-left: 20px;
+        }
+        
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .content-title {
+            font-size: 1.2rem;
+            color: var(--secondary-color);
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .btn-primary {
+            background-color: var(--accent-color);
+            color: white;
+        }
+        
+        .btn-success {
+            background-color: var(--success-color);
+            color: white;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger-color);
+            color: white;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background-color: #f8f9fa;
+            color: var(--secondary-color);
+        }
+        
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .file-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .file-action {
+            cursor: pointer;
+            color: var(--accent-color);
+        }
+        
+        .file-action:hover {
+            text-decoration: underline;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 5px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            font-size: 1.2rem;
+            color: var(--secondary-color);
+        }
+        
+        .close {
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: #aaa;
+        }
+        
+        .close:hover {
+            color: black;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        .drag-area {
+            border: 2px dashed #ddd;
+            border-radius: 5px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: border-color 0.3s;
+        }
+        
+        .drag-area.active {
+            border-color: var(--accent-color);
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+        
+        .drag-area i {
+            font-size: 50px;
+            color: #ddd;
+            margin-bottom: 15px;
+        }
+        
+        .drag-area p {
+            margin-bottom: 10px;
+        }
+        
+        .drag-area span {
+            color: var(--accent-color);
+            cursor: pointer;
+        }
+        
+        .progress-container {
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .progress {
+            height: 10px;
+            border-radius: 5px;
+            background-color: #ddd;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: var(--accent-color);
+            transition: width 0.3s;
+        }
+        
+        .notifications {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1001;
+        }
+        
+        .notification {
+            background-color: white;
+            padding: 15px 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.3s forwards;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .notification.success {
+            border-left: 4px solid var(--success-color);
+        }
+        
+        .notification.error {
+            border-left: 4px solid var(--danger-color);
+        }
+        
+        .notification i {
+            font-size: 18px;
+        }
+        
+        .notification.success i {
+            color: var(--success-color);
+        }
+        
+        .notification.error i {
+            color: var(--danger-color);
+        }
+        
+        .login-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f5f7fa;
+        }
+        
+        .login-form {
+            background-color: white;
+            padding: 30px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        
+        .login-header h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+        
+        .login-header p {
+            color: #7f8c8d;
+        }
+        
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 1rem;
+            margin-top: 10px;
+        }
+        
+        .login-footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        /* Icons */
+        .material-icons {
+            font-family: 'Material Icons';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="login-page" class="login-container">
+        <div class="login-form">
+            <div class="login-header">
+                <h1>Local FTP Server</h1>
+                <p>Enter your credentials to access the file system</p>
+            </div>
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" class="form-control" placeholder="Enter username">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" class="form-control" placeholder="Enter password">
+            </div>
+            <button id="login-btn" class="login-btn">Login</button>
+            <div class="login-footer">
+                <p>Access your files securely over your local network</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="app" class="container" style="display: none;">
+        <header>
+            <div class="header-title">
+                <i class="material-icons">storage</i>
+                <h1>Local Network File Sharing</h1>
+            </div>
+            <div>
+                <span id="username-display">admin</span>
+                <button id="logout-btn" class="btn btn-danger">
+                    <i class="material-icons">logout</i>
+                    Logout
+                </button>
+            </div>
+        </header>
+        
+        <div class="connection-info">
+            <div class="connection-status">
+                <div class="status-indicator"></div>
+                <span>Connected to local server</span>
+            </div>
+            <div id="server-address">Server: http://localhost:8080</div>
+        </div>
+        
+        <div class="main-content">
+            <div class="sidebar">
+                <h3>Folders</h3>
+                <ul class="folder-tree" id="folder-tree">
+                    <li>
+                        <div class="folder active" data-path="/">
+                            <i class="material-icons">folder</i>
+                            <span>Root</span>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="folder" data-path="/documents">
+                            <i class="material-icons">folder</i>
+                            <span>Documents</span>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="folder" data-path="/images">
+                            <i class="material-icons">folder</i>
+                            <span>Images</span>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="folder" data-path="/videos">
+                            <i class="material-icons">folder</i>
+                            <span>Videos</span>
+                        </div>
+                    </li>
+                </ul>
+                <div style="margin-top: 20px;">
+                    <button id="new-folder-btn" class="btn btn-primary">
+                        <i class="material-icons">create_new_folder</i>
+                        New Folder
+                    </button>
+                </div>
+            </div>
+            
+            <div class="content">
+                <div class="content-header">
+                    <h2 class="content-title" id="current-path">Root Directory</h2>
+                    <div class="action-buttons">
+                        <button id="upload-btn" class="btn btn-primary">
+                            <i class="material-icons">upload</i>
+                            Upload
+                        </button>
+                        <button id="refresh-btn" class="btn btn-success">
+                            <i class="material-icons">refresh</i>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Size</th>
+                            <th>Modified</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="file-list">
+                        <!-- Files will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div id="upload-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Upload Files</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="drag-area" id="drop-area">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Drag & Drop files here or</p>
+                <span>Browse Files</span>
+                <input type="file" id="file-input" hidden multiple>
+            </div>
+            <div class="progress-container" id="progress-container">
+                <p>Uploading... <span id="progress-percentage">0%</span></p>
+                <div class="progress">
+                    <div class="progress-bar" id="progress-bar"></div>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-danger close-modal">Cancel</button>
+                <button id="upload-files-btn" class="btn btn-primary">Upload</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Folder Modal -->
+    <div id="new-folder-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Create New Folder</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="form-group">
+                <label for="folder-name">Folder Name</label>
+                <input type="text" id="folder-name" class="form-control" placeholder="Enter folder name">
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-danger close-modal">Cancel</button>
+                <button id="create-folder-btn" class="btn btn-primary">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications Container -->
+    <div class="notifications" id="notifications"></div>
+
+    <script>
+        // Demo user credentials
+        const validCredentials = {
+            'admin': 'password123',
+            'user': 'user123'
+        };
+
+        // Store files in localStorage (simulated file system)
+        class FileSystem {
+            constructor() {
+                this.initializeStorage();
+            }
+
+            initializeStorage() {
+                if (!localStorage.getItem('file_system')) {
+                    const defaultSystem = {
+                        '/': [],
+                        '/documents': [],
+                        '/images': [],
+                        '/videos': []
+                    };
+                    localStorage.setItem('file_system', JSON.stringify(defaultSystem));
+                }
+            }
+
+            getFiles(path) {
+                const fileSystem = JSON.parse(localStorage.getItem('file_system'));
+                return fileSystem[path] || [];
+            }
+
+            addFile(path, file) {
+                const fileSystem = JSON.parse(localStorage.getItem('file_system'));
+                
+                if (!fileSystem[path]) {
+                    fileSystem[path] = [];
+                }
+                
+                // Check if file already exists
+                const existingFileIndex = fileSystem[path].findIndex(f => f.name === file.name);
+                if (existingFileIndex >= 0) {
+                    // Update existing file
+                    fileSystem[path][existingFileIndex] = file;
+                } else {
+                    // Add new file
+                    fileSystem[path].push(file);
+                }
+                
+                localStorage.setItem('file_system', JSON.stringify(fileSystem));
+                return true;
+            }
+
+            deleteFile(path, fileName) {
+                const fileSystem = JSON.parse(localStorage.getItem('file_system'));
+                
+                if (!fileSystem[path]) return false;
+                
+                const fileIndex = fileSystem[path].findIndex(file => file.name === fileName);
+                if (fileIndex === -1) return false;
+                
+                fileSystem[path].splice(fileIndex, 1);
+                localStorage.setItem('file_system', JSON.stringify(fileSystem));
+                return true;
+            }
+
+            createFolder(folderPath) {
+                const fileSystem = JSON.parse(localStorage.getItem('file_system'));
+                
+                if (fileSystem[folderPath]) {
+                    return false; // Folder already exists
+                }
+                
+                fileSystem[folderPath] = [];
+                localStorage.setItem('file_system', JSON.stringify(fileSystem));
+                
+                // Add to parent folder list
+                const pathParts = folderPath.split('/');
+                const folderName = pathParts.pop();
+                const parentPath = pathParts.join('/') || '/';
+                
+                return true;
+            }
+
+            deleteFolder(folderPath) {
+                const fileSystem = JSON.parse(localStorage.getItem('file_system'));
+                
+                if (!fileSystem[folderPath]) {
+                    return false; // Folder doesn't exist
+                }
+                
+                delete fileSystem[folderPath];
+                localStorage.setItem('file_system', JSON.stringify(fileSystem));
+                
+                // Also delete any subfolders
+                Object.keys(fileSystem).forEach(path => {
+                    if (path.startsWith(folderPath + '/')) {
+                        delete fileSystem[path];
+                    }
+                });
+                
+                localStorage.setItem('file_system', JSON.stringify(fileSystem));
+                return true;
+            }
+
+            listFolders() {
+                const fileSystem = JSON.parse(localStorage.getItem('file_system'));
+                return Object.keys(fileSystem);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const fs = new FileSystem();
+            let currentUser = null;
+            let currentPath = '/';
+
+            // DOM Elements
+            const loginPage = document.getElementById('login-page');
+            const appPage = document.getElementById('app');
+            const loginBtn = document.getElementById('login-btn');
+            const logoutBtn = document.getElementById('logout-btn');
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            const usernameDisplay = document.getElementById('username-display');
+            const currentPathElement = document.getElementById('current-path');
+            const fileList = document.getElementById('file-list');
+            const folderTree = document.getElementById('folder-tree');
+            const uploadBtn = document.getElementById('upload-btn');
+            const refreshBtn = document.getElementById('refresh-btn');
+            const newFolderBtn = document.getElementById('new-folder-btn');
+            const serverAddressElement = document.getElementById('server-address');
+            
+            // Modals
+            const uploadModal = document.getElementById('upload-modal');
+            const newFolderModal = document.getElementById('new-folder-modal');
+            const uploadFilesBtn = document.getElementById('upload-files-btn');
+            const createFolderBtn = document.getElementById('create-folder-btn');
+            const folderNameInput = document.getElementById('folder-name');
+            const dropArea = document.getElementById('drop-area');
+            const fileInput = document.getElementById('file-input');
+            const progressContainer = document.getElementById('progress-container');
+            const progressBar = document.getElementById('progress-bar');
+            const progressPercentage = document.getElementById('progress-percentage');
+            
+            // Close modal buttons
+            const closeButtons = document.querySelectorAll('.close, .close-modal');
+            
+            // Get local IP address and display it
+            function updateServerAddress() {
+                // This is simplified - in a real app we'd use server-side code
+                const hostname = window.location.hostname;
+                const port = 8080; // Example port
+                serverAddressElement.textContent = `Server: http://${hostname === 'localhost' ? '127.0.0.1' : hostname}:${port}`;
+            }
+            
+            // Authentication functions
+            function login() {
+                const username = usernameInput.value;
+                const password = passwordInput.value;
+                
+                if (validCredentials[username] && validCredentials[username] === password) {
+                    currentUser = username;
+                    usernameDisplay.textContent = username;
+                    loginPage.style.display = 'none';
+                    appPage.style.display = 'block';
+                    loadFiles(currentPath);
+                    updateServerAddress();
+                    showNotification('Login successful!', 'success');
+                } else {
+                    showNotification('Invalid username or password', 'error');
+                }
+            }
+            
+            function logout() {
+                currentUser = null;
+                loginPage.style.display = 'flex';
+                appPage.style.display = 'none';
+                usernameInput.value = '';
+                passwordInput.value = '';
+                showNotification('Logged out successfully', 'success');
+            }
+            
+            // File handling functions
+            function loadFiles(path) {
+                currentPath = path;
+                currentPathElement.textContent = path === '/' ? 'Root Directory' : path;
+                
+                // Update active folder in the sidebar
+                document.querySelectorAll('.folder').forEach(folder => {
+                    folder.classList.remove('active');
+                    if (folder.dataset.path === path) {
+                        folder.classList.add('active');
+                    }
+                });
+                
+                // Load files from the file system
+                const files = fs.getFiles(path);
+                
+                // Clear the file list
+                fileList.innerHTML = '';
+                
+                if (path !== '/') {
+                    // Add parent directory
+                    const parentPath = path.substring(0, path.lastIndexOf('/')) || '/';
+                    const parentRow = document.createElement('tr');
+                    parentRow.innerHTML = `
+                        <td><i class="material-icons">folder</i> <a href="#" class="folder-link" data-path="${parentPath}">..</a></td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                    `;
+                    fileList.appendChild(parentRow);
+                }
+                
+                // Add folders first
+                fs.listFolders().forEach(folderPath => {
+                    if (folderPath === path) return; // Skip current path
+                    
+                    const pathParts = folderPath.split('/');
+                    const parentPath = '/' + pathParts.slice(1, -1).join('/');
+                    
+                    if (parentPath === path && pathParts.length > 1) {
+                        const folderName = pathParts[pathParts.length - 1];
+                        if (!folderName) return; // Skip empty folder names
+                        
+                        const folderRow = document.createElement('tr');
+                        folderRow.innerHTML = `
+                            <td><i class="material-icons">folder</i> <a href="#" class="folder-link" data-path="${folderPath}">${folderName}</a></td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>
+                                <div class="file-actions">
+                                    <span class="file-action delete-folder" data-path="${folderPath}">Delete</span>
+                                </div>
+                            </td>
+                        `;
+                        fileList.appendChild(folderRow);
+                    }
+                });
+                
+                // Then add files
+                files.forEach(file => {
+                    const fileRow = document.createElement('tr');
+                    const fileSize = formatFileSize(file.size);
+                    const fileDate = new Date(file.lastModified).toLocaleString();
+                    
+                    fileRow.innerHTML = `
+                        <td><i class="material-icons">insert_drive_file</i> ${file.name}</td>
+                        <td>${fileSize}</td>
+                        <td>${fileDate}</td>
+                        <td>
+                            <div class="file-actions">
+                                <span class="file-action download-file" data-name="${file.name}">Download</span>
+                                <span class="file-action delete-file" data-name="${file.name}">Delete</span>
+                            </div>
+                        </td>
+                    `;
+                    fileList.appendChild(fileRow);
+                });
+                
+                // Update folder tree in sidebar
+                updateFolderTree();
+            }
+            
+            function updateFolderTree() {
+                const folders = fs.listFolders();
+                
+                // Keep root folder
+                folderTree.innerHTML = `
+                    <li>
+                        <div class="folder ${currentPath === '/' ? 'active' : ''}" data-path="/">
+                            <i class="material-icons">folder</i>
+                            <span>Root</span>
+                        </div>
+                    </li>
+                `;
+                
+                // Skip root folder and sort folders
+                folders
+                    .filter(path => path !== '/')
+                    .sort()
+                    .forEach(path => {
+                        const pathParts = path.split('/');
+                        const folderName = pathParts[pathParts.length - 1];
+                        
+                        if (!folderName) return; // Skip empty folder names
+                        
+                        // Only add top-level folders to the sidebar for simplicity
+                        if (pathParts.length === 2) {
+                            const folderItem = document.createElement('li');
+                            folderItem.innerHTML = `
+                                <div class="folder ${currentPath === path ? 'active' : ''}" data-path="${path}">
+                                    <i class="material-icons">folder</i>
+                                    <span>${folderName}</span>
+                                </div>
+                            `;
+                            folderTree.appendChild(folderItem);
+                        }
+                    });
+                
+                // Add event listeners to folder links
+                document.querySelectorAll('.folder').forEach(folder => {
+                    folder.addEventListener('click', () => {
+                        loadFiles(folder.dataset.path);
+                    });
+                });
+            }
+            
+            function createFolder() {
+                const folderName = folderNameInput.value.trim();
+                
+                if (!folderName) {
+                    showNotification('Please enter a folder name', 'error');
+                    return;
+                }
+                
+                const newPath = currentPath === '/' ? `/${folderName}` : `${currentPath}/${folderName}`;
+                
+                if (fs.createFolder(newPath)) {
+                    loadFiles(currentPath);
+                    closeModal(newFolderModal);
+                    folderNameInput.value = '';
+                    showNotification(`Folder "${folderName}" created successfully`, 'success');
+                } else {
+                    showNotification(`Folder "${folderName}" already exists`, 'error');
+                }
+            }
+            
+            // Continuing from previous code...
+
+            function deleteFile(fileName) {
+                if (confirm(`Are you sure you want to delete "${fileName}"?`)) {
+                    if (fs.deleteFile(currentPath, fileName)) {
+                        loadFiles(currentPath);
+                        showNotification(`File "${fileName}" deleted successfully`, 'success');
+                    } else {
+                        showNotification(`Failed to delete file "${fileName}"`, 'error');
+                    }
+                }
+            }
+            
+            function uploadFiles(files) {
+                if (!files || files.length === 0) {
+                    showNotification('No files selected', 'error');
+                    return;
+                }
+                
+                // Show progress container
+                progressContainer.style.display = 'block';
+                
+                // Process each file
+                const totalFiles = files.length;
+                let processedFiles = 0;
+                
+                // Simulate file upload with a delay
+                Array.from(files).forEach((file, index) => {
+                    setTimeout(() => {
+                        // Convert file to base64 (simulating storage)
+                        const reader = new FileReader();
+                        reader.readAsDataURL(file);
+                        
+                        reader.onload = function() {
+                            // Create a file object to store
+                            const fileObj = {
+                                name: file.name,
+                                type: file.type,
+                                size: file.size,
+                                lastModified: new Date().getTime(),
+                                content: reader.result
+                            };
+                            
+                            // Store the file
+                            fs.addFile(currentPath, fileObj);
+                            
+                            // Update progress
+                            processedFiles++;
+                            const progress = Math.round((processedFiles / totalFiles) * 100);
+                            progressBar.style.width = `${progress}%`;
+                            progressPercentage.textContent = `${progress}%`;
+                            
+                            // When all files are processed
+                            if (processedFiles === totalFiles) {
+                                setTimeout(() => {
+                                    closeModal(uploadModal);
+                                    loadFiles(currentPath);
+                                    resetUploadUI();
+                                    showNotification(`${totalFiles} file(s) uploaded successfully`, 'success');
+                                }, 500);
+                            }
+                        };
+                    }, index * 500); // Stagger uploads for demonstration
+                });
+            }
+            
+            function downloadFile(fileName) {
+                const files = fs.getFiles(currentPath);
+                const file = files.find(f => f.name === fileName);
+                
+                if (!file || !file.content) {
+                    showNotification(`File "${fileName}" not found or corrupted`, 'error');
+                    return;
+                }
+                
+                // Create an anchor element and trigger download
+                const link = document.createElement('a');
+                link.href = file.content;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                showNotification(`Downloading "${fileName}"`, 'success');
+            }
+            
+            // UI Helper Functions
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+            
+            function showNotification(message, type) {
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                
+                const icon = type === 'success' ? 'check_circle' : 'error';
+                
+                notification.innerHTML = `
+                    <i class="material-icons">${icon}</i>
+                    <span>${message}</span>
+                `;
+                
+                const notifications = document.getElementById('notifications');
+                notifications.appendChild(notification);
+                
+                // Remove notification after 3 seconds
+                setTimeout(() => {
+                    notification.style.opacity = '0';
+                    setTimeout(() => {
+                        notifications.removeChild(notification);
+                    }, 300);
+                }, 3000);
+            }
+            
+            function openModal(modal) {
+                modal.style.display = 'flex';
+            }
+            
+            function closeModal(modal) {
+                modal.style.display = 'none';
+            }
+            
+            function resetUploadUI() {
+                progressContainer.style.display = 'none';
+                progressBar.style.width = '0%';
+                progressPercentage.textContent = '0%';
+                fileInput.value = '';
+            }
+            
+            // Event Listeners
+            loginBtn.addEventListener('click', login);
+            logoutBtn.addEventListener('click', logout);
+            
+            uploadBtn.addEventListener('click', () => openModal(uploadModal));
+            newFolderBtn.addEventListener('click', () => openModal(newFolderModal));
+            
+            refreshBtn.addEventListener('click', () => {
+                loadFiles(currentPath);
+                showNotification('Files refreshed', 'success');
+            });
+            
+            // Close modal buttons
+            closeButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    closeModal(uploadModal);
+                    closeModal(newFolderModal);
+                    resetUploadUI();
+                });
+            });
+            
+            // Create folder
+            createFolderBtn.addEventListener('click', createFolder);
+            
+            // Upload files
+            uploadFilesBtn.addEventListener('click', () => {
+                uploadFiles(fileInput.files);
+            });
+            
+            // File input change
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length > 0) {
+                    dropArea.classList.add('active');
+                } else {
+                    dropArea.classList.remove('active');
+                }
+            });
+            
+            // Drag and drop functionality
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropArea.addEventListener(eventName, () => {
+                    dropArea.classList.add('active');
+                }, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, () => {
+                    dropArea.classList.remove('active');
+                }, false);
+            });
+            
+            dropArea.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                
+                fileInput.files = files;
+                
+                if (files.length > 0) {
+                    dropArea.classList.add('active');
+                }
+            }, false);
+            
+            // Browse files
+            dropArea.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            // Event delegation for file list actions
+            fileList.addEventListener('click', (e) => {
+                const target = e.target;
+                
+                // Handle folder navigation
+                if (target.classList.contains('folder-link')) {
+                    e.preventDefault();
+                    loadFiles(target.dataset.path);
+                }
+                
+                // Handle file download
+                if (target.classList.contains('download-file')) {
+                    downloadFile(target.dataset.name);
+                }
+                
+                // Handle file deletion
+                if (target.classList.contains('delete-file')) {
+                    deleteFile(target.dataset.name);
+                }
+                
+                // Handle folder deletion
+                if (target.classList.contains('delete-folder')) {
+                    deleteFolder(target.dataset.path);
+                }
+            });
+            
+            // Add keyboard shortcut for login
+            passwordInput.addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') {
+                    login();
+                }
+            });
+            
+            // Add keyboard shortcut for folder creation
+            folderNameInput.addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') {
+                    createFolder();
+                }
+            });
+            
+            // SSH Connection Simulator
+            class SSHConnection {
+                constructor() {
+                    this.connected = false;
+                    this.connectionInfo = {};
+                }
+                
+                connect(host, port, username, password) {
+                    return new Promise((resolve, reject) => {
+                        // Simulate connection delay
+                        setTimeout(() => {
+                            if (validCredentials[username] === password) {
+                                this.connected = true;
+                                this.connectionInfo = {
+                                    host,
+                                    port,
+                                    username,
+                                    connectionTime: new Date()
+                                };
+                                resolve({
+                                    success: true,
+                                    message: `Connected to ${host}:${port} as ${username}`
+                                });
+                            } else {
+                                reject({
+                                    success: false,
+                                    message: 'Authentication failed'
+                                });
+                            }
+                        }, 1000);
+                    });
+                }
+                
+                disconnect() {
+                    this.connected = false;
+                    this.connectionInfo = {};
+                    return {
+                        success: true,
+                        message: 'Disconnected from server'
+                    };
+                }
+                
+                getConnectionInfo() {
+                    return this.connected ? this.connectionInfo : null;
+                }
+                
+                executeCommand(command) {
+                    if (!this.connected) {
+                        return {
+                            success: false,
+                            message: 'Not connected to server'
+                        };
+                    }
+                    
+                    // Simulate command execution
+                    return {
+                        success: true,
+                        message: `Command "${command}" executed successfully`,
+                        output: `Simulated output for "${command}"`
+                    };
+                }
+            }
+            
+            // Initialize SSH connection
+            const ssh = new SSHConnection();
+            
+            // Add Terminal functionality
+            class Terminal {
+                constructor(containerId) {
+                    this.container = document.getElementById(containerId);
+                    if (!this.container) {
+                        this.createTerminalUI();
+                    }
+                    this.history = [];
+                    this.historyIndex = -1;
+                    this.initEventListeners();
+                }
+                
+                createTerminalUI() {
+                    // Create terminal modal
+                    const terminalModal = document.createElement('div');
+                    terminalModal.id = 'terminal-modal';
+                    terminalModal.className = 'modal';
+                    
+                    terminalModal.innerHTML = `
+                        <div class="modal-content" style="width: 80%; max-width: 800px; height: 500px; padding: 0; overflow: hidden; display: flex; flex-direction: column;">
+                            <div class="modal-header" style="background-color: #2c3e50; color: white; padding: 10px; margin: 0; border-radius: 5px 5px 0 0;">
+                                <h3 class="modal-title">SSH Terminal</h3>
+                                <span class="close">&times;</span>
+                            </div>
+                            <div id="terminal-container" style="flex: 1; background-color: #1e1e1e; color: #f0f0f0; padding: 10px; overflow-y: auto; font-family: monospace;">
+                                <div id="terminal-output"></div>
+                                <div id="terminal-input-line" style="display: flex;">
+                                    <span id="terminal-prompt" style="color: #2ecc71;">guest@localhost:~$</span>
+                                    <input type="text" id="terminal-input" style="flex: 1; background: transparent; color: #f0f0f0; border: none; outline: none; margin-left: 5px;">
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    document.body.appendChild(terminalModal);
+                    this.container = document.getElementById('terminal-container');
+                    
+                    // Add close button functionality
+                    const closeBtn = terminalModal.querySelector('.close');
+                    closeBtn.addEventListener('click', () => {
+                        terminalModal.style.display = 'none';
+                    });
+                    
+                    // Create terminal button in header
+                    const actionButtons = document.querySelector('.action-buttons');
+                    const terminalBtn = document.createElement('button');
+                    terminalBtn.id = 'terminal-btn';
+                    terminalBtn.className = 'btn btn-primary';
+                    terminalBtn.innerHTML = `
+                        <i class="material-icons">code</i>
+                        Terminal
+                    `;
+                    
+                    actionButtons.appendChild(terminalBtn);
+                    
+                    // Add terminal button event listener
+                    terminalBtn.addEventListener('click', () => {
+                        terminalModal.style.display = 'flex';
+                        document.getElementById('terminal-input').focus();
+                    });
+                }
+                
+                initEventListeners() {
+                    const terminalInput = document.getElementById('terminal-input');
+                    
+                    terminalInput.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            const command = terminalInput.value.trim();
+                            if (command) {
+                                this.executeCommand(command);
+                                terminalInput.value = '';
+                            }
+                        } else if (e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            this.navigateHistory(-1);
+                        } else if (e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            this.navigateHistory(1);
+                        }
+                    });
+                }
+                
+                navigateHistory(direction) {
+                    const newIndex = this.historyIndex + direction;
+                    
+                    if (newIndex >= -1 && newIndex < this.history.length) {
+                        this.historyIndex = newIndex;
+                        
+                        const terminalInput = document.getElementById('terminal-input');
+                        if (this.historyIndex === -1) {
+                            terminalInput.value = '';
+                        } else {
+                            terminalInput.value = this.history[this.historyIndex];
+                        }
+                    }
+                }
+                
+                writeOutput(text, isCommand = false) {
+                    const terminalOutput = document.getElementById('terminal-output');
+                    
+                    const outputLine = document.createElement('div');
+                    outputLine.className = 'output-line';
+                    
+                    if (isCommand) {
+                        outputLine.innerHTML = `<span style="color: #2ecc71;">${document.getElementById('terminal-prompt').textContent}</span> ${text}`;
+                    } else {
+                        outputLine.textContent = text;
+                    }
+                    
+                    terminalOutput.appendChild(outputLine);
+                    
+                    // Scroll to bottom
+                    this.container.scrollTop = this.container.scrollHeight;
+                }
+                
+                executeCommand(command) {
+                    // Add to history
+                    this.history.unshift(command);
+                    this.historyIndex = -1;
+                    
+                    // Show command in output
+                    this.writeOutput(command, true);
+                    
+                    // Process command
+                    const parts = command.split(' ');
+                    const cmd = parts[0].toLowerCase();
+                    
+                    switch (cmd) {
+                        case 'help':
+                            this.showHelp();
+                            break;
+                        case 'clear':
+                            document.getElementById('terminal-output').innerHTML = '';
+                            break;
+                        case 'ls':
+                            this.listFiles(parts[1]);
+                            break;
+                        case 'cd':
+                            this.changeDirectory(parts[1]);
+                            break;
+                        case 'mkdir':
+                            this.makeDirectory(parts[1]);
+                            break;
+                        case 'rm':
+                            this.removeFile(parts);
+                            break;
+                        case 'ssh':
+                            this.sshConnect(parts);
+                            break;
+                        case 'exit':
+                            this.sshDisconnect();
+                            break;
+                        case 'whoami':
+                            this.whoami();
+                            break;
+                        case 'pwd':
+                            this.pwd();
+                            break;
+                        case 'date':
+                            this.writeOutput(new Date().toString());
+                            break;
+                        default:
+                            this.writeOutput(`Command not found: ${cmd}`);
+                    }
+                }
+                
+                showHelp() {
+                    const helpText = `
+Available commands:
+  help              - Show this help message
+  clear             - Clear the terminal screen
+  ls [path]         - List files in the current or specified directory
+  cd [path]         - Change to the specified directory
+  mkdir [name]      - Create a new directory
+  rm [-r] [name]    - Remove a file or directory (use -r for directories)
+  ssh [user@host]   - Connect to a remote server via SSH
+  exit              - Exit SSH connection
+  whoami            - Display current user
+  pwd               - Print working directory
+  date              - Display current date and time
+                    `;
+                    
+                    this.writeOutput(helpText);
+                }
+                
+                listFiles(path) {
+                    const targetPath = path || currentPath;
+                    const files = fs.getFiles(targetPath);
+                    
+                    if (files.length === 0) {
+                        this.writeOutput(`No files in ${targetPath}`);
+                        return;
+                    }
+                    
+                    // Get folders
+                    const folders = fs.listFolders().filter(folderPath => {
+                        const pathParts = folderPath.split('/');
+                        const parentPath = '/' + pathParts.slice(1, -1).join('/');
+                        return parentPath === targetPath && pathParts.length > 1;
+                    });
+                    
+                    // Display folders
+                    folders.forEach(folderPath => {
+                        const folderName = folderPath.split('/').pop();
+                        if (folderName) {
+                            this.writeOutput(`drwxr-xr-x  1 ${currentUser} users      4096 ${new Date().toDateString()} ${folderName}/`);
+                        }
+                    });
+                    
+                    // Display files
+                    files.forEach(file => {
+                        const fileDate = new Date(file.lastModified).toDateString();
+                        this.writeOutput(`-rw-r--r--  1 ${currentUser} users ${file.size.toString().padStart(8)} ${fileDate} ${file.name}`);
+                    });
+                }
+                
+                changeDirectory(path) {
+                    if (!path || path === '.') {
+                        return;
+                    }
+                    
+                    if (path === '..') {
+                        // Go up one level
+                        const pathParts = currentPath.split('/');
+                        pathParts.pop();
+                        const newPath = pathParts.join('/') || '/';
+                        currentPath = newPath;
+                        document.getElementById('terminal-prompt').textContent = `${currentUser}@localhost:${currentPath === '/' ? '/' : currentPath}$`;
+                        return;
+                    }
+                    
+                    let newPath;
+                    if (path.startsWith('/')) {
+                        newPath = path;
+                    } else {
+                        newPath = currentPath === '/' ? `/${path}` : `${currentPath}/${path}`;
+                    }
+                    
+                    // Check if directory exists
+                    const fileSystem = JSON.parse(localStorage.getItem('file_system'));
+                    if (fileSystem[newPath] !== undefined) {
+                        currentPath = newPath;
+                        document.getElementById('terminal-prompt').textContent = `${currentUser}@localhost:${currentPath === '/' ? '/' : currentPath}$`;
+                    } else {
+                        this.writeOutput(`cd: ${path}: No such file or directory`);
+                    }
+                }
+                
+                makeDirectory(name) {
+                    if (!name) {
+                        this.writeOutput('mkdir: missing operand');
+                        return;
+                    }
+                    
+                    const newPath = currentPath === '/' ? `/${name}` : `${currentPath}/${name}`;
+                    
+                    if (fs.createFolder(newPath)) {
+                        this.writeOutput(`Directory created: ${name}`);
+                    } else {
+                        this.writeOutput(`mkdir: cannot create directory '${name}': File exists`);
+                    }
+                }
+                
+                removeFile(parts) {
+                    let isRecursive = false;
+                    let target = '';
+                    
+                    // Parse options
+                    if (parts.length < 2) {
+                        this.writeOutput('rm: missing operand');
+                        return;
+                    }
+                    
+                    if (parts[1] === '-r' || parts[1] === '-rf') {
+                        isRecursive = true;
+                        target = parts[2];
+                    } else {
+                        target = parts[1];
+                    }
+                    
+                    if (!target) {
+                        this.writeOutput('rm: missing operand');
+                        return;
+                    }
+                    
+                    // Check if it's a file or directory
+                    const files = fs.getFiles(currentPath);
+                    const file = files.find(f => f.name === target);
+                    
+                    if (file) {
+                        // It's a file
+                        if (fs.deleteFile(currentPath, target)) {
+                            this.writeOutput(`Removed file: ${target}`);
+                        } else {
+                            this.writeOutput(`rm: cannot remove '${target}': No such file`);
+                        }
+                    } else {
+                        // Check if it's a directory
+                        const targetPath = currentPath === '/' ? `/${target}` : `${currentPath}/${target}`;
+                        const fileSystem = JSON.parse(localStorage.getItem('file_system'));
+                        
+                        if (fileSystem[targetPath] !== undefined) {
+                            // It's a directory
+                            if (isRecursive) {
+                                if (fs.deleteFolder(targetPath)) {
+                                    this.writeOutput(`Removed directory: ${target}`);
+                                } else {
+                                    this.writeOutput(`rm: cannot remove '${target}': Failed to delete`);
+                                }
+                            } else {
+                                this.writeOutput(`rm: cannot remove '${target}': Is a directory`);
+                            }
+                        } else {
+                            this.writeOutput(`rm: cannot remove '${target}': No such file or directory`);
+                        }
+                    }
+                }
+                
+                sshConnect(parts) {
+                    if (parts.length < 2) {
+                        this.writeOutput('Usage: ssh user@host');
+                        return;
+                    }
+                    
+                    const connection = parts[1];
+                    const [username, host] = connection.split('@');
+                    
+                    if (!username || !host) {
+                        this.writeOutput('Invalid format. Use: ssh user@host');
+                        return;
+                    }
+                    
+                    this.writeOutput(`Connecting to ${host} as ${username}...`);
+                    
+                    const password = validCredentials[username];
+                    if (!password) {
+                        this.writeOutput('User not found or invalid password');
+                        return;
+                    }
+                    
+                    ssh.connect(host, 22, username, password)
+                        .then(result => {
+                            this.writeOutput(result.message);
+                            document.getElementById('terminal-prompt').textContent = `${username}@${host}:~$`;
+                        })
+                        .catch(error => {
+                            this.writeOutput(error.message);
+                        });
+                }
+                
+                sshDisconnect() {
+                    if (ssh.connected) {
+                        const result = ssh.disconnect();
+                        this.writeOutput(result.message);
+                        document.getElementById('terminal-prompt').textContent = 'guest@localhost:~$';
+                    } else {
+                        this.writeOutput('Connection closed');
+                    }
+                }
+                
+                whoami() {
+                    if (ssh.connected) {
+                        const info = ssh.getConnectionInfo();
+                        this.writeOutput(info.username);
+                    } else {
+                        this.writeOutput('guest');
+                    }
+                }
+                
+                pwd() {
+                    this.writeOutput(currentPath);
+                }
+            }
+            
+            // Initialize terminal
+            const terminal = new Terminal('terminal-container');
+            
+            // Add a simple file to the root directory for demonstration
+            const welcomeFile = {
+                name: 'welcome.txt',
+                type: 'text/plain',
+                size: 252,
+                lastModified: new Date().getTime(),
+                content: 'data:text/plain;base64,V2VsY29tZSB0byB0aGUgTG9jYWwgTmV0d29yayBGaWxlIFNoYXJpbmcgYXBwbGljYXRpb24hCgpUaGlzIGlzIGEgc2ltcGxlIGRlbW9uc3RyYXRpb24gb2YgYSBmaWxlIHNoYXJpbmcgc3lzdGVtIHRoYXQgYWxsb3dzIHlvdSB0byB1cGxvYWQsIGRvd25sb2FkLCBhbmQgbWFuYWdlIGZpbGVzIG9uIHlvdXIgbG9jYWwgbmV0d29yay4='
+            };
+            
+            fs.addFile('/', welcomeFile);
+            
+            // Initialize the app
+            // Check if the user was previously logged in (using sessionStorage)
+            const loggedInUser = sessionStorage.getItem('logged_in_user');
+            if (loggedInUser && validCredentials[loggedInUser]) {
+                currentUser = loggedInUser;
+                usernameDisplay.textContent = loggedInUser;
+                loginPage.style.display = 'none';
+                appPage.style.display = 'block';
+                loadFiles(currentPath);
+                updateServerAddress();
+            }
+        });
+    </script>
+</body>
+</html>
